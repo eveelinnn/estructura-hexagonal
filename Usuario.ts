@@ -80,40 +80,40 @@ class UsuarioDuplicadoError extends Error { //lanzar un error cuando se intenta
 
 // Puerto para el repositorio de usuarios
 interface RepositorioUsuario {
-    guardar(usuario: Usuario): Promise<void>;
-    obtenerPorId(id: string): Promise<Usuario | null>;
-    obtenerPorEmail(email: string): Promise<Usuario | null>;
-    obtenerTodos(): Promise<Usuario[]>;
-    buscar(termino: string): Promise<Usuario[]>;
-    eliminar(id: string): Promise<boolean>;
-    existe(email: string): Promise<boolean>;
+    guardar(usuario: Usuario): Promise<void>; //Método para guardar usuario
+    obtenerPorId(id: string): Promise<Usuario | null>; //Buscar usuario por ID
+    obtenerPorEmail(email: string): Promise<Usuario | null>; //Buscar usuario por email
+    obtenerTodos(): Promise<Usuario[]>;  //Obtener todos los usuarios
+    buscar(termino: string): Promise<Usuario[]>;//Buscar usuarios por término
+    eliminar(id: string): Promise<boolean>; //Eliminar usuario (retorna true si se eliminó)
+    existe(email: string): Promise<boolean>; //Verificar si existe un email
 }
 
 // Puerto para el logger
 interface Logger {
-    info(mensaje: string, datos?: any): void;
-    error(mensaje: string, error?: Error): void;
-    warn(mensaje: string, datos?: any): void;
+    info(mensaje: string, datos?: any): void;  // Log informativo
+    error(mensaje: string, error?: Error): void;  // Log de errores
+    warn(mensaje: string, datos?: any): void;  //Log de advertencias
 }
 
 // Puerto para notificaciones
 interface ServicioNotificacion {
-    enviarBienvenida(usuario: Usuario): Promise<void>;
-    notificarActualizacion(usuario: Usuario): Promise<void>;
+    enviarBienvenida(usuario: Usuario): Promise<void>; //Enviar email de bienvenida
+    notificarActualizacion(usuario: Usuario): Promise<void>; //Notificar actualización de usuario
 }
 
 // =============================================================================
 // CAPA DE APLICACIÓN - Casos de uso y lógica de aplicación
 // =============================================================================
 
-// DTOs (Data Transfer Objects)
+// DTOs para crear usuario
 interface CrearUsuarioDto {
-    nombre: string;
-    email: string;
+    nombre: string; //Nombre requerido
+    email: string;  //Nombre email
 }
-
+//DTO para actualizar usuario
 interface ActualizarUsuarioDto {
-    id: string;
+    id: string;  //ID requerido
     nombre?: string;
     email?: string;
 }
@@ -125,12 +125,12 @@ interface UsuarioRespuestaDto {
     fechaCreacion: Date;
 }
 
-// Servicio de aplicación mejorado
+// Clase principal de la capa de aplicación
 class UsuarioService {
-    constructor(
-        private repositorio: RepositorioUsuario,
-        private logger: Logger,
-        private notificaciones: ServicioNotificacion
+    constructor(    //Constructor con inyección de dependencias
+        private repositorio: RepositorioUsuario,  //Repositorio inyectado
+        private logger: Logger,                   //
+        private notificaciones: ServicioNotificacion //
     ) {}
 
     // Crear usuario con validaciones y notificaciones
@@ -179,15 +179,18 @@ class UsuarioService {
 
     // Buscar usuario por ID
     async obtenerUsuarioPorId(id: string): Promise<UsuarioRespuestaDto> {
+        // log de busqueda
         this.logger.info('Buscando usuario por ID', { id });
         
+        //buscar repositorio
         const usuario = await this.repositorio.obtenerPorId(id);
+        //Si no existe, lanzar excepción
         if (!usuario) {
             this.logger.warn('Usuario no encontrado por ID', { id });
             throw new UsuarioNoEncontradoError(`ID: ${id}`);
         }
 
-        return this.mapearADto(usuario);
+        return this.mapearADto(usuario); //Convertir a DTO
     }
 
 
@@ -195,6 +198,7 @@ class UsuarioService {
     async actualizarUsuario(datos: ActualizarUsuarioDto): Promise<UsuarioRespuestaDto> {
         this.logger.info('Actualizando usuario', { id: datos.id });
 
+        //Verificar que el usuario existe
         const usuarioExistente = await this.repositorio.obtenerPorId(datos.id);
         if (!usuarioExistente) {
             throw new UsuarioNoEncontradoError(`ID: ${datos.id}`);
@@ -214,7 +218,7 @@ class UsuarioService {
             datos.email
         );
 
-        await this.repositorio.guardar(usuarioActualizado);
+        await this.repositorio.guardar(usuarioActualizado);//Guardar cambios
 
         // Notificar actualización
         try {
@@ -232,9 +236,9 @@ class UsuarioService {
     async eliminarUsuario(id: string): Promise<boolean> {
         this.logger.info('Eliminando usuario', { id });
 
-        const eliminado = await this.repositorio.eliminar(id);
+        const eliminado = await this.repositorio.eliminar(id);//Intentar eliminar del repositorio
         
-        if (!eliminado) {
+        if (!eliminado) {//Si no se pudo eliminar, lanzar excepción
             this.logger.warn('No se pudo eliminar el usuario', { id });
             throw new UsuarioNoEncontradoError(`ID: ${id}`);
         }
@@ -243,7 +247,7 @@ class UsuarioService {
         return true;
     }
 
-    // Mapper privado
+    // Método privado para convertir entidad a DTO
     private mapearADto(usuario: Usuario): UsuarioRespuestaDto {
         return {
             id: usuario.id,
@@ -260,16 +264,16 @@ class UsuarioService {
 
 // Implementación del repositorio en memoria
 class RepositorioUsuarioEnMemoria implements RepositorioUsuario {
-    private usuarios: Map<string, Usuario> = new Map();
+    private usuarios: Map<string, Usuario> = new Map();//Map privado para almacenar usuarios
 
-    async guardar(usuario: Usuario): Promise<void> {
+    async guardar(usuario: Usuario): Promise<void> {//Guarda o actualiza usuario en el Map
         this.usuarios.set(usuario.id, usuario);
     }
-
-    async obtenerPorId(id: string): Promise<Usuario | null> {
-        return this.usuarios.get(id) || null;
+//Implementa buscar por ID
+    async obtenerPorId(id: string): Promise<Usuario | null> {//Implementa guardar usuario
+        return this.usuarios.get(id) || null;//Busca en Map y retorna null si no existe
     }
-
+//Implementa buscar por email
     async obtenerPorEmail(email: string): Promise<Usuario | null> {
         for (const usuario of this.usuarios.values()) {
             if (usuario.email === email) {
@@ -278,11 +282,11 @@ class RepositorioUsuarioEnMemoria implements RepositorioUsuario {
         }
         return null;
     }
-
-    async obtenerTodos(): Promise<Usuario[]> {
+//Implementa obtener todos
+    async obtenerTodos(): Promise<Usuario[]> {//Convierte valores del Map a array
         return Array.from(this.usuarios.values());
     }
-
+//Implementa búsqueda por término
     async buscar(termino: string): Promise<Usuario[]> {
         const terminoLower = termino.toLowerCase();
         const usuarios = Array.from(this.usuarios.values());
@@ -362,20 +366,20 @@ class ServicioNotificacionEmail implements ServicioNotificacion {
 // CONFIGURACIÓN Y FACTORY - Inyección de dependencias
 // =============================================================================
 
-class ConfiguradorAplicacion {
-    private repositorio: RepositorioUsuario;
+class ConfiguradorAplicacion {  //Factory para configurar dependencias
+    private repositorio: RepositorioUsuario; //Propiedades privadas para las dependencias
     private logger: Logger;
     private notificaciones: ServicioNotificacion;
 
-    constructor() {
+    constructor() { //Constructor que instancia todas las dependencias
         // Configurar dependencias
-        this.logger = new LoggerConsola();
-        this.repositorio = new RepositorioUsuarioEnMemoria();
-        this.notificaciones = new ServicioNotificacionEmail(this.logger);
+        this.logger = new LoggerConsola(); //instancia del logger
+        this.repositorio = new RepositorioUsuarioEnMemoria();//
+        this.notificaciones = new ServicioNotificacionEmail(this.logger);//
     }
 
     crearUsuarioService(): UsuarioService {
-        return new UsuarioService(
+        return new UsuarioService( //Inyecta todas las dependencias
             this.repositorio,
             this.logger,
             this.notificaciones
@@ -388,15 +392,15 @@ class ConfiguradorAplicacion {
 // =============================================================================
 
 async function demostrarSistema() {
-    console.log('='.repeat(70));
-    console.log('DEMOSTRACIÓN DEL SISTEMA DE GESTIÓN DE USUARIOS MEJORADO');
+    console.log('='.repeat(70)); //Imprime encabezado
+    console.log('DEMOSTRACIÓN DEL SISTEMA DE GESTIÓN DE USUARIOS');
     console.log('='.repeat(70));
 
     // Configurar aplicación
     const configurador = new ConfiguradorAplicacion();
     const usuarioService = configurador.crearUsuarioService();
 
-    try {
+    try { //Inicia bloque try-catch para manejo de errores
         // 1. Crear usuarios
         console.log('\n1. CREANDO USUARIOS...');
         
@@ -404,7 +408,7 @@ async function demostrarSistema() {
             nombre: "Juan Pérez",
             email: "juan@example.com"
         });
-        console.log('✅ Usuario creado:', usuario1);
+        console.log('✅ Usuario creado:', usuario1);//(repite para usuario2 y usuario3)
 
         const usuario2 = await usuarioService.agregarUsuario({
             nombre: "María García",
