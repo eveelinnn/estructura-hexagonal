@@ -2,49 +2,56 @@
 // CAPA DE DOMINIO
 // =============================================================================
 
-// Entidad Usuario - Reglas de negocio
+// clase Usuario representa la entidad principal del dominio 
 class Usuario {
-    public readonly id: string;
-    public readonly fechaCreacion: Date;
+    public readonly id: string;           //ID de solo lectura,no se puede modificar
+    public readonly fechaCreacion: Date;  //Fecha de creación de solo lectura
 
-    constructor(
-        public nombre: string, 
-        public email: string,
-        id?: string
+    constructor(                          //recibe nombre, email y opcionalmente un ID
+        public nombre: string,            //Propiedad pública nombre
+        public email: string,             //Propiedad pública email
+        id?: string                       //ID opcional
     ) {
-        this.id = id || this.generarId();
-        this.fechaCreacion = new Date();
-        this.validar();
+        this.id = id || this.generarId(); //Si no se proporciona ID, genera uno automáticamente
+        this.fechaCreacion = new Date();  //Establece la fecha actual como fecha de creación
+        this.validar();                   //Ejecuta validaciones de reglas de negocio
     }
 
-    private generarId(): string {
+    private generarId(): string {  //Método privado para generar IDs únicos
         return 'user_' + Math.random().toString(36).substr(2, 9);
+        //Crea un ID usando 'user_' + caracteres aleatorios
     }
 
-    private validar(): void {
+    private validar(): void {    //Método privado que valida las reglas de negocio
         if (!this.nombre || this.nombre.trim().length < 2) {
             throw new Error('El nombre debe tener al menos 2 caracteres');
+            //Valida que el nombre tenga al menos 2 caracteres
         }
         
-        if (!this.email || !this.esEmailValido(this.email)) {
+        if (!this.email || !this.esEmailValido(this.email)) { //Valida que el email tenga formato correcto
             throw new Error('El email debe tener un formato válido');
         }
     }
 
-    private esEmailValido(email: string): boolean {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+    //Método privado para validar formato de email
+    private esEmailValido(email: string): boolean {  
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;//validar formato de email
+        return emailRegex.test(email); //Retorna true si el email coincide con el patrón
     }
 
     // Método para actualizar información del usuario
     actualizarDatos(nuevoNombre?: string, nuevoEmail?: string): Usuario {
+        //usa el nuevo nombre o mantiene el actual
         const nombre = nuevoNombre || this.nombre;
+        //usa el nuevo email o mantiene el actual
         const email = nuevoEmail || this.email;
+        //retorna nueva instancia con los datos
         return new Usuario(nombre, email, this.id);
     }
 
-    // Método para comparar usuarios
+        // Método para comparar usuarios
     esIgual(otroUsuario: Usuario): boolean {
+        //Compara por email (criterio de igualdad de negocio)
         return this.email === otroUsuario.email;
     }
 }
@@ -52,12 +59,15 @@ class Usuario {
 // Excepciones del dominio
 class UsuarioNoEncontradoError extends Error {
     constructor(criterio: string) {
+        //Llama al constructor padre con mensaje personalizado
         super(`Usuario no encontrado: ${criterio}`);
+        //Establece el nombre de la excepción
         this.name = 'UsuarioNoEncontradoError';
     }
 }
 
-class UsuarioDuplicadoError extends Error {
+class UsuarioDuplicadoError extends Error { //lanzar un error cuando se intenta  
+// crar un usuario con un correo electrónico que ya está en uso
     constructor(email: string) {
         super(`Ya existe un usuario con el email: ${email}`);
         this.name = 'UsuarioDuplicadoError';
